@@ -1,0 +1,6 @@
+{
+  "name": "Smart Study",
+  "description": "AI-powered smart study, quiz, practice, and exam preparation app with multimodal question extraction and performance analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

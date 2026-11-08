@@ -1,0 +1,361 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 1: Global Default-Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidTimestamp(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    // Entity Validation Helpers (Pillar 2: Anti-Update-Gap)
+    function isValidUser(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+             data.email is string && data.email.size() <= 200 &&
+             data.studyStreak is int && data.studyStreak >= 0 && data.studyStreak <= 100000 &&
+             data.lastStudyDate is string && data.lastStudyDate.size() <= 32 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidSubject(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.subjectName is string && data.subjectName.size() >= 1 && data.subjectName.size() <= 120 &&
+             data.description is string && data.description.size() <= 500 &&
+             data.colorHex is string && data.colorHex.size() <= 16 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidChapter(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 128 &&
+             data.chapterName is string && data.chapterName.size() >= 1 && data.chapterName.size() <= 150 &&
+             data.chapterNumber is int && data.chapterNumber >= 1 && data.chapterNumber <= 1000 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidQuestion(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 128 &&
+             data.subjectName is string && data.subjectName.size() >= 1 && data.subjectName.size() <= 120 &&
+             data.chapterId is string && data.chapterId.size() <= 128 &&
+             data.chapterName is string && data.chapterName.size() <= 150 &&
+             data.questionNumber is int && data.questionNumber >= 1 && data.questionNumber <= 100000 &&
+             data.questionText is string && data.questionText.size() >= 1 && data.questionText.size() <= 3000 &&
+             data.options is list && data.options.size() == 4 &&
+             data.options[0] is string && data.options[0].size() >= 1 && data.options[0].size() <= 1000 &&
+             data.options[1] is string && data.options[1].size() >= 1 && data.options[1].size() <= 1000 &&
+             data.options[2] is string && data.options[2].size() >= 1 && data.options[2].size() <= 1000 &&
+             data.options[3] is string && data.options[3].size() >= 1 && data.options[3].size() <= 1000 &&
+             data.correctAnswer in ['A', 'B', 'C', 'D'] &&
+             data.explanation is string && data.explanation.size() <= 3000 &&
+             data.sourceReference is string && data.sourceReference.size() <= 300 &&
+             data.sourceImage is string && data.sourceImage.size() <= 500 &&
+             data.answerConfidence in ['VERIFIED', 'AI_GENERATED', 'NEEDS_REVIEW'] &&
+             data.difficulty in ['EASY', 'MEDIUM', 'HARD'] &&
+             data.isBookmarked is bool &&
+             data.collectionTag is string && data.collectionTag.size() <= 100 &&
+             data.lastAttemptCorrect is bool &&
+             data.attemptCount is int && data.attemptCount >= 0 && data.attemptCount <= 100000 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidTest(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 200 &&
+             data.subjectId is string && data.subjectId.size() <= 128 &&
+             data.subjectName is string && data.subjectName.size() <= 120 &&
+             data.chapterId is string && data.chapterId.size() <= 128 &&
+             data.questionIds is list && data.questionIds.size() >= 1 && data.questionIds.size() <= 200 &&
+             data.questionIds[0] is string && data.questionIds[0].size() <= 128 &&
+             data.durationSeconds is int && data.durationSeconds >= 0 && data.durationSeconds <= 86400 &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    function isValidResult(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.testId is string && data.testId.size() >= 1 && data.testId.size() <= 128 &&
+             data.testTitle is string && data.testTitle.size() >= 1 && data.testTitle.size() <= 200 &&
+             data.subjectId is string && data.subjectId.size() <= 128 &&
+             data.subjectName is string && data.subjectName.size() <= 120 &&
+             data.chapterId is string && data.chapterId.size() <= 128 &&
+             data.chapterName is string && data.chapterName.size() <= 150 &&
+             data.questionIds is list && data.questionIds.size() >= 1 && data.questionIds.size() <= 200 &&
+             data.questionIds[0] is string && data.questionIds[0].size() <= 128 &&
+             data.selectedAnswers is map && data.selectedAnswers.size() <= 200 &&
+             data.questionTimeSeconds is map && data.questionTimeSeconds.size() <= 200 &&
+             data.totalQuestions is int && data.totalQuestions >= 1 && data.totalQuestions <= 200 &&
+             data.correctCount is int && data.correctCount >= 0 && data.correctCount <= 200 &&
+             data.incorrectCount is int && data.incorrectCount >= 0 && data.incorrectCount <= 200 &&
+             data.unansweredCount is int && data.unansweredCount >= 0 && data.unansweredCount <= 200 &&
+             data.percentage is int && data.percentage >= 0 && data.percentage <= 100 &&
+             data.timeTakenSeconds is int && data.timeTakenSeconds >= 0 && data.timeTakenSeconds <= 86400 &&
+             isValidTimestamp(data.completedAt);
+    }
+
+    function isValidPracticeSession(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 200 &&
+             data.mode in ['ALL', 'INCORRECT', 'BOOKMARKED', 'SUBJECT', 'CHAPTER'] &&
+             data.subjectId is string && data.subjectId.size() <= 128 &&
+             data.chapterId is string && data.chapterId.size() <= 128 &&
+             data.questionIds is list && data.questionIds.size() >= 1 && data.questionIds.size() <= 200 &&
+             data.questionIds[0] is string && data.questionIds[0].size() <= 128 &&
+             data.currentQuestion is int && data.currentQuestion >= 0 && data.currentQuestion <= 200 &&
+             data.completedQuestions is int && data.completedQuestions >= 0 && data.completedQuestions <= 200 &&
+             data.score is int && data.score >= 0 && data.score <= 200 &&
+             data.wrongQuestionIds is list && data.wrongQuestionIds.size() <= 200 &&
+             (data.wrongQuestionIds.size() == 0 || (data.wrongQuestionIds[0] is string && data.wrongQuestionIds[0].size() <= 128)) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidUploadedMaterial(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.fileName is string && data.fileName.size() >= 1 && data.fileName.size() <= 250 &&
+             data.fileType in ['IMAGE', 'PDF', 'TEXT'] &&
+             data.extractedQuestionCount is int && data.extractedQuestionCount >= 0 && data.extractedQuestionCount <= 500 &&
+             data.subjectName is string && data.subjectName.size() <= 120 &&
+             data.chapterName is string && data.chapterName.size() <= 150 &&
+             data.status in ['PROCESSED', 'SAVED'] &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    // 1. Users Collection
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       incoming().keys().hasAll(['userId', 'name', 'email', 'studyStreak', 'lastStudyDate', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'name', 'email', 'studyStreak', 'lastStudyDate', 'createdAt', 'updatedAt']) &&
+                       isValidUser(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       isValidUser(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['name', 'email', 'studyStreak', 'lastStudyDate', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+    }
+
+    // 2. Subjects Collection
+    match /subjects/{subjectId} {
+      allow get: if isSignedIn() && isValidId(subjectId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+
+      allow create: if isSignedIn() &&
+                       isValidId(subjectId) &&
+                       incoming().keys().hasAll(['userId', 'subjectName', 'description', 'colorHex', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'subjectName', 'description', 'colorHex', 'createdAt', 'updatedAt']) &&
+                       isValidSubject(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(subjectId) &&
+                       existing().userId == request.auth.uid &&
+                       isValidSubject(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['subjectName', 'description', 'colorHex', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(subjectId) && existing().userId == request.auth.uid;
+    }
+
+    // 3. Chapters Collection
+    match /chapters/{chapterId} {
+      allow get: if isSignedIn() && isValidId(chapterId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+
+      allow create: if isSignedIn() &&
+                       isValidId(chapterId) &&
+                       incoming().keys().hasAll(['userId', 'subjectId', 'chapterName', 'chapterNumber', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'subjectId', 'chapterName', 'chapterNumber', 'createdAt', 'updatedAt']) &&
+                       isValidChapter(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(chapterId) &&
+                       existing().userId == request.auth.uid &&
+                       isValidChapter(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().subjectId == existing().subjectId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['chapterName', 'chapterNumber', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(chapterId) && existing().userId == request.auth.uid;
+    }
+
+    // 4. Questions Collection
+    match /questions/{questionId} {
+      allow get: if isSignedIn() && isValidId(questionId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+
+      allow create: if isSignedIn() &&
+                       isValidId(questionId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'subjectId', 'subjectName', 'chapterId', 'chapterName',
+                         'questionNumber', 'questionText', 'options', 'correctAnswer',
+                         'explanation', 'sourceReference', 'sourceImage', 'answerConfidence',
+                         'difficulty', 'isBookmarked', 'collectionTag', 'lastAttemptCorrect',
+                         'attemptCount', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'subjectId', 'subjectName', 'chapterId', 'chapterName',
+                         'questionNumber', 'questionText', 'options', 'correctAnswer',
+                         'explanation', 'sourceReference', 'sourceImage', 'answerConfidence',
+                         'difficulty', 'isBookmarked', 'collectionTag', 'lastAttemptCorrect',
+                         'attemptCount', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidQuestion(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(questionId) &&
+                       existing().userId == request.auth.uid &&
+                       isValidQuestion(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'subjectId', 'subjectName', 'chapterId', 'chapterName',
+                         'questionNumber', 'questionText', 'options', 'correctAnswer',
+                         'explanation', 'sourceReference', 'sourceImage', 'answerConfidence',
+                         'difficulty', 'isBookmarked', 'collectionTag', 'lastAttemptCorrect',
+                         'attemptCount', 'updatedAt'
+                       ]);
+
+      allow delete: if isSignedIn() && isValidId(questionId) && existing().userId == request.auth.uid;
+    }
+
+    // 5. Tests Collection
+    match /tests/{testId} {
+      allow get: if isSignedIn() && isValidId(testId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+
+      allow create: if isSignedIn() &&
+                       isValidId(testId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'title', 'subjectId', 'subjectName', 'chapterId',
+                         'questionIds', 'durationSeconds', 'createdAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'title', 'subjectId', 'subjectName', 'chapterId',
+                         'questionIds', 'durationSeconds', 'createdAt'
+                       ]) &&
+                       isValidTest(incoming());
+
+      allow update: if false;
+      allow delete: if isSignedIn() && isValidId(testId) && existing().userId == request.auth.uid;
+    }
+
+    // 6. Results Collection
+    match /results/{resultId} {
+      allow get: if isSignedIn() && isValidId(resultId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+
+      allow create: if isSignedIn() &&
+                       isValidId(resultId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'testId', 'testTitle', 'subjectId', 'subjectName', 'chapterId', 'chapterName',
+                         'questionIds', 'selectedAnswers', 'questionTimeSeconds', 'totalQuestions',
+                         'correctCount', 'incorrectCount', 'unansweredCount', 'percentage',
+                         'timeTakenSeconds', 'completedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'testId', 'testTitle', 'subjectId', 'subjectName', 'chapterId', 'chapterName',
+                         'questionIds', 'selectedAnswers', 'questionTimeSeconds', 'totalQuestions',
+                         'correctCount', 'incorrectCount', 'unansweredCount', 'percentage',
+                         'timeTakenSeconds', 'completedAt'
+                       ]) &&
+                       isValidResult(incoming());
+
+      allow update: if false;
+      allow delete: if isSignedIn() && isValidId(resultId) && existing().userId == request.auth.uid;
+    }
+
+    // 7. PracticeSessions Collection
+    match /practice_sessions/{sessionId} {
+      allow get: if isSignedIn() && isValidId(sessionId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+
+      allow create: if isSignedIn() &&
+                       isValidId(sessionId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'title', 'mode', 'subjectId', 'chapterId', 'questionIds',
+                         'currentQuestion', 'completedQuestions', 'score', 'wrongQuestionIds',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'title', 'mode', 'subjectId', 'chapterId', 'questionIds',
+                         'currentQuestion', 'completedQuestions', 'score', 'wrongQuestionIds',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidPracticeSession(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(sessionId) &&
+                       existing().userId == request.auth.uid &&
+                       isValidPracticeSession(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'currentQuestion', 'completedQuestions', 'score', 'wrongQuestionIds', 'updatedAt'
+                       ]);
+
+      allow delete: if isSignedIn() && isValidId(sessionId) && existing().userId == request.auth.uid;
+    }
+
+    // 8. UploadedMaterials Collection
+    match /uploaded_materials/{materialId} {
+      allow get: if isSignedIn() && isValidId(materialId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+
+      allow create: if isSignedIn() &&
+                       isValidId(materialId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'fileName', 'fileType', 'extractedQuestionCount',
+                         'subjectName', 'chapterName', 'status', 'createdAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'fileName', 'fileType', 'extractedQuestionCount',
+                         'subjectName', 'chapterName', 'status', 'createdAt'
+                       ]) &&
+                       isValidUploadedMaterial(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(materialId) &&
+                       existing().userId == request.auth.uid &&
+                       isValidUploadedMaterial(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['status', 'extractedQuestionCount']);
+
+      allow delete: if isSignedIn() && isValidId(materialId) && existing().userId == request.auth.uid;
+    }
+  }
+}

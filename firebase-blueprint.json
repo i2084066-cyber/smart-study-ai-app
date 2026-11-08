@@ -1,0 +1,201 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Authenticated learner profile and study streak metadata.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID of the user." },
+        "name": { "type": "string", "description": "Display name of the student." },
+        "email": { "type": "string", "description": "Email address of the student." },
+        "studyStreak": { "type": "integer", "description": "Consecutive days studied." },
+        "lastStudyDate": { "type": "string", "description": "ISO date string (YYYY-MM-DD) of last study activity." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp of creation." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp of last update." }
+      },
+      "required": ["userId", "name", "email", "studyStreak", "lastStudyDate", "createdAt", "updatedAt"]
+    },
+    "Subject": {
+      "title": "Subject",
+      "description": "Top-level academic subject created by a user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID." },
+        "subjectName": { "type": "string", "description": "Name of the subject (e.g., Science, Mathematics)." },
+        "description": { "type": "string", "description": "Brief description of the subject." },
+        "colorHex": { "type": "string", "description": "Accent hex color for UI cards." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp of creation." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp of last update." }
+      },
+      "required": ["userId", "subjectName", "description", "colorHex", "createdAt", "updatedAt"]
+    },
+    "Chapter": {
+      "title": "Chapter",
+      "description": "Chapter belonging to a Subject.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID." },
+        "subjectId": { "type": "string", "description": "Parent Subject ID." },
+        "chapterName": { "type": "string", "description": "Name of the chapter (e.g., Physics, Organic Chemistry)." },
+        "chapterNumber": { "type": "integer", "description": "Sequential chapter number." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp of creation." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp of last update." }
+      },
+      "required": ["userId", "subjectId", "chapterName", "chapterNumber", "createdAt", "updatedAt"]
+    },
+    "Question": {
+      "title": "Question",
+      "description": "Multiple-choice question with four options, explanation, and confidence metadata.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID." },
+        "subjectId": { "type": "string", "description": "Associated Subject ID." },
+        "subjectName": { "type": "string", "description": "Associated Subject Name." },
+        "chapterId": { "type": "string", "description": "Associated Chapter ID." },
+        "chapterName": { "type": "string", "description": "Associated Chapter Name." },
+        "questionNumber": { "type": "integer", "description": "Sequential question number." },
+        "questionText": { "type": "string", "description": "Full text of the MCQ stem." },
+        "options": { "type": "array", "description": "Exactly four answer choices [Option A, Option B, Option C, Option D]." },
+        "correctAnswer": { "type": "string", "enum": ["A", "B", "C", "D"], "description": "Correct option letter (A, B, C, or D)." },
+        "explanation": { "type": "string", "description": "Detailed explanation of the solution." },
+        "sourceReference": { "type": "string", "description": "Origin document, image name, or AI topic." },
+        "sourceImage": { "type": "string", "description": "Optional URI or reference to the uploaded image/PDF." },
+        "answerConfidence": { "type": "string", "enum": ["VERIFIED", "AI_GENERATED", "NEEDS_REVIEW"], "description": "Confidence status of the answer." },
+        "difficulty": { "type": "string", "enum": ["EASY", "MEDIUM", "HARD"], "description": "Difficulty level." },
+        "isBookmarked": { "type": "boolean", "description": "Whether the user bookmarked the question." },
+        "collectionTag": { "type": "string", "description": "Custom collection or tag name." },
+        "lastAttemptCorrect": { "type": "boolean", "description": "Whether the last practice/test attempt was correct." },
+        "attemptCount": { "type": "integer", "description": "Total times attempted by the user." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp of creation." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp of last update." }
+      },
+      "required": [
+        "userId", "subjectId", "subjectName", "chapterId", "chapterName",
+        "questionNumber", "questionText", "options", "correctAnswer",
+        "explanation", "sourceReference", "sourceImage", "answerConfidence",
+        "difficulty", "isBookmarked", "collectionTag", "lastAttemptCorrect",
+        "attemptCount", "createdAt", "updatedAt"
+      ]
+    },
+    "Test": {
+      "title": "Test",
+      "description": "Configured examination session.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID." },
+        "title": { "type": "string", "description": "Title of the examination." },
+        "subjectId": { "type": "string", "description": "Subject ID filter or empty for mixed." },
+        "subjectName": { "type": "string", "description": "Subject name." },
+        "chapterId": { "type": "string", "description": "Chapter ID filter or empty." },
+        "questionIds": { "type": "array", "description": "Ordered list of question IDs in the test." },
+        "durationSeconds": { "type": "integer", "description": "Time limit in seconds (0 for untimed)." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp of creation." }
+      },
+      "required": ["userId", "title", "subjectId", "subjectName", "chapterId", "questionIds", "durationSeconds", "createdAt"]
+    },
+    "Result": {
+      "title": "Result",
+      "description": "Completed examination result and question-by-question breakdown.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID." },
+        "testId": { "type": "string", "description": "Associated Test ID." },
+        "testTitle": { "type": "string", "description": "Title of the test." },
+        "subjectId": { "type": "string", "description": "Subject ID." },
+        "subjectName": { "type": "string", "description": "Subject Name." },
+        "chapterId": { "type": "string", "description": "Chapter ID." },
+        "chapterName": { "type": "string", "description": "Chapter Name." },
+        "questionIds": { "type": "array", "description": "Ordered list of question IDs in the exam." },
+        "selectedAnswers": { "type": "object", "description": "Map of questionId to selected option letter (A/B/C/D)." },
+        "questionTimeSeconds": { "type": "object", "description": "Map of questionId to time spent in seconds." },
+        "totalQuestions": { "type": "integer", "description": "Total number of questions." },
+        "correctCount": { "type": "integer", "description": "Number of correct answers." },
+        "incorrectCount": { "type": "integer", "description": "Number of wrong answers." },
+        "unansweredCount": { "type": "integer", "description": "Number of unanswered questions." },
+        "percentage": { "type": "integer", "description": "Percentage score (0 to 100)." },
+        "timeTakenSeconds": { "type": "integer", "description": "Total time taken in seconds." },
+        "completedAt": { "type": "string", "format": "date-time", "description": "Server timestamp of completion." }
+      },
+      "required": [
+        "userId", "testId", "testTitle", "subjectId", "subjectName", "chapterId", "chapterName",
+        "questionIds", "selectedAnswers", "questionTimeSeconds", "totalQuestions",
+        "correctCount", "incorrectCount", "unansweredCount", "percentage",
+        "timeTakenSeconds", "completedAt"
+      ]
+    },
+    "PracticeSession": {
+      "title": "PracticeSession",
+      "description": "Interactive practice session progress and state.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID." },
+        "title": { "type": "string", "description": "Session title." },
+        "mode": { "type": "string", "enum": ["ALL", "INCORRECT", "BOOKMARKED", "SUBJECT", "CHAPTER"], "description": "Practice filter mode." },
+        "subjectId": { "type": "string", "description": "Optional subject filter." },
+        "chapterId": { "type": "string", "description": "Optional chapter filter." },
+        "questionIds": { "type": "array", "description": "Question IDs in this practice session." },
+        "currentQuestion": { "type": "integer", "description": "Zero-based index of current question." },
+        "completedQuestions": { "type": "integer", "description": "Count of questions answered in this session." },
+        "score": { "type": "integer", "description": "Count of correct answers in this session." },
+        "wrongQuestionIds": { "type": "array", "description": "IDs of questions answered incorrectly in this session." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp of creation." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp of last update." }
+      },
+      "required": [
+        "userId", "title", "mode", "subjectId", "chapterId", "questionIds",
+        "currentQuestion", "completedQuestions", "score", "wrongQuestionIds",
+        "createdAt", "updatedAt"
+      ]
+    },
+    "UploadedMaterial": {
+      "title": "UploadedMaterial",
+      "description": "Metadata record of uploaded study images, PDFs, or notes processed by AI.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID." },
+        "fileName": { "type": "string", "description": "Display name of the uploaded file or document." },
+        "fileType": { "type": "string", "enum": ["IMAGE", "PDF", "TEXT"], "description": "Material format." },
+        "extractedQuestionCount": { "type": "integer", "description": "Number of MCQs extracted." },
+        "subjectName": { "type": "string", "description": "Assigned Subject name." },
+        "chapterName": { "type": "string", "description": "Assigned Chapter name." },
+        "status": { "type": "string", "enum": ["PROCESSED", "SAVED"], "description": "Processing status." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp of upload." }
+      },
+      "required": ["userId", "fileName", "fileType", "extractedQuestionCount", "subjectName", "chapterName", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile and study streak documents."
+    },
+    "/subjects/{subjectId}": {
+      "schema": "Subject",
+      "description": "User-created academic subjects."
+    },
+    "/chapters/{chapterId}": {
+      "schema": "Chapter",
+      "description": "Chapters organized under subjects."
+    },
+    "/questions/{questionId}": {
+      "schema": "Question",
+      "description": "Question bank containing extracted, AI-generated, and manual MCQs."
+    },
+    "/tests/{testId}": {
+      "schema": "Test",
+      "description": "Examination test definitions."
+    },
+    "/results/{resultId}": {
+      "schema": "Result",
+      "description": "Examination test results and question analytics."
+    },
+    "/practice_sessions/{sessionId}": {
+      "schema": "PracticeSession",
+      "description": "Saved interactive practice sessions."
+    },
+    "/uploaded_materials/{materialId}": {
+      "schema": "UploadedMaterial",
+      "description": "History of uploaded study images and PDFs."
+    }
+  }
+}
